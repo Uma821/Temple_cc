@@ -172,6 +172,7 @@ Node *new_node_num(int val) {
 
 Node *expr();
 Node *mul();
+Node *unary();
 Node *primary();
 
 Node *expr() {
@@ -188,16 +189,24 @@ Node *expr() {
 }
 
 Node *mul() {
-  Node *node = primary();
+  Node *node = unary();
 
   for (;;) {
     if (consume('*'))
-      node = new_node(ND_MUL, node, primary());
+      node = new_node(ND_MUL, node, unary());
     else if (consume('/'))
-      node = new_node(ND_DIV, node, primary());
+      node = new_node(ND_DIV, node, unary());
     else
       return node;
   }
+}
+
+Node *unary() {
+  if (consume('+'))
+    return primary();
+  if (consume('-'))
+    return new_node(ND_SUB, new_node_num(0), primary());
+  return primary();
 }
 
 Node *primary() {
@@ -248,7 +257,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-    // トークナイズしてパースする
+  // トークナイズしてパースする
   user_input = argv[1];
   token = tokenize();
   Node *node = expr();
@@ -256,6 +265,8 @@ int main(int argc, char **argv) {
   // アセンブリの前半部分を出力
   printf("  seti main\n");
   printf("  move $t0\n");
+  printf("  seti 10000\n");
+  printf("  move $sp\n");
   printf("  jl $t0 111 $ra\n");
 
   // 乗算関数MUL ($t1(掛けられる数), $t2(掛ける数)に与えられた値の乗算結果を$t3に格納する)
@@ -351,6 +362,7 @@ int main(int argc, char **argv) {
 
   // 除算関数DIV ($t1(割られる数), $t2(割る数)に与えられた値の除算結果の商を$t3、余りを$t1に格納する)
   // 疑似命令用レジスタ不足のため、$ra、Mem[$sp-2]をちゃっかり使用する。割る数が0の場合無限ループ
+  //
   printf("DIV:\n");
   printf("  nor $allone\n");
   printf("  move $t3\n");
