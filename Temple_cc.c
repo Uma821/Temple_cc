@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
- 
+
 #define x64_mov(rgst, immed) "seti "immed"\n  move "rgst
 #define x64_add_immed(rgst, immed) "seti "immed"\n  move $t0\n  nor $allone\n  add "rgst"\n  add $t0\n  move "rgst
 #define x64_add_rgst(rgst1, rgst2) "nor $allone\n  add "rgst1"\n  add "rgst2"\n  move "rgst1
@@ -13,6 +13,11 @@
 #define x64_push_immed(immed) "seti -2\n  add $sp\n  move $sp\n  seti "immed"\n  sd $sp"
 #define x64_push_rgst(rgst) "seti -2\n  add $sp\n  move $sp\n  nor $allone\n  add "rgst"\n  sd $sp"
 #define x64_pop_rgst(rgst) "ld $sp\n  move "rgst"\n  seti 2\n  add $sp\n  move $sp"
+#define x64_cmp(rgst1, rgst2) "nor $allone\n  nor "rgst2"\n  add $one\n  add "rgst1
+#define x64_sete(rgst)  "seti sete_end%d\n  move $ra\n  seti 1\n  move "rgst"\n  jl $ra 100 $one\n  add $allone\n  move "rgst"\nsete_end%d:"
+#define x64_setne(rgst) "seti setne_end%d\n  move $ra\n  seti 0\n  move "rgst"\n  jl $ra 100 $one\n  add $one\n  move "rgst"\nsetne_end%d:"
+#define x64_setl(rgst)  "seti setl_end%d\n  move $ra\n  seti 1\n  move "rgst"\n  jl $ra 010 $one\n  add $allone\n  move "rgst"\nsetl_end%d:"
+#define x64_setle(rgst) "seti setle_end%d\n  move $ra\n  seti 1\n  move "rgst"\n  jl $ra 110 $one\n  add $allone\n  move "rgst"\nsetle_end%d:"
 #define call(immed) "jl $zero 000 $t0\n  seti -2\n  add $sp\n  move $sp\n  seti 16\n  add $t0\n  sd $sp\n  seti "immed"\n  move $t0\n  jl $t0 111 $ra"
 #define ret() "ld $sp\n  move $t0\n  seti 2\n  add $sp\n  move $sp\n  jl $t0 111 $ra"
 #define x64_imul(rgst1, rgst2) "nor $allone\n  add "rgst1"\n  move $t1\n  nor $allone\n  add "rgst2"\n  move $t2\n  "call("MUL")"\n  nor $allone\n  add $t3\n  move "rgst1
@@ -33,6 +38,7 @@ struct Token {
   Token *next;    // 次の入力トークン
   int val;        // kindがTK_NUMの場合、その数値
   char *str;      // トークン文字列
+  int len;        // トークンの長さ
 };
 
 // 入力プログラム
@@ -66,8 +72,10 @@ void error_at(char *loc, char *fmt, ...) {
 }
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
-bool consume(char op) {
-  if (token->kind != TK_RESERVED || token->str[0] != op)
+bool consume(char *op) {
+  if (token->kind != TK_RESERVED || 
+      strlen(op) != token->len ||
+      memcmp(token->str, op, token->len))
     return false;
   token = token->next;
   return true;
@@ -75,8 +83,10 @@ bool consume(char op) {
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
-void expect(char op) {
-  if (token->kind != TK_RESERVED || token->str[0] != op)
+void expect(char *op) {
+  if (token->kind != TK_RESERVED ||
+      strlen(op) != token->len ||
+      memcmp(token->str, op, token->len))
     error_at(token->str, "'%c'ではありません", op);
   token = token->next;
 }
@@ -96,15 +106,20 @@ bool at_eof() {
 }
 
 // 新しいトークンを作成してcurに繋げる
-Token *new_token(TokenKind kind, Token *cur, char *str) {
+Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   Token *tok = calloc(1, sizeof(Token));
   tok->kind = kind;
   tok->str = str;
+  tok->len = len;
   cur->next = tok;
   return tok;
 }
 
-// 入力文字列pをトークナイズしてそれを返す
+bool startswith(char *p, char *q) {
+  return memcmp(p, q, strlen(q)) == 0;
+}
+
+// 入力文字列user_inputをトークナイズしてそれを返す
 Token *tokenize() {
   char *p = user_input;
   Token head;
@@ -118,21 +133,33 @@ Token *tokenize() {
       continue;
     }
 
-    if (ispunct(*p)) {
-      cur = new_token(TK_RESERVED, cur, p++);
+    // 2文字演算子
+    if (startswith(p, "==") || startswith(p, "!=") ||
+        startswith(p, "<=") || startswith(p, ">=")) {
+      cur = new_token(TK_RESERVED, cur, p, 2);
+      p += 2;
       continue;
     }
 
+    // 1文字演算子
+    if (strchr("+-*/()<>", *p)) {
+      cur = new_token(TK_RESERVED, cur, p++, 1);
+      continue;
+    }
+
+    // 整数リテラル
     if (isdigit(*p)) {
-      cur = new_token(TK_NUM, cur, p);
+      cur = new_token(TK_NUM, cur, p, 0);
+      char *q = p;
       cur->val = strtol(p, &p, 10);
+      cur->len = p - q;
       continue;
     }
 
     error_at(p, "トークナイズできません");
   }
 
-  new_token(TK_EOF, cur, p);
+  new_token(TK_EOF, cur, p, 0);
   return head.next;
 }
 
@@ -142,6 +169,10 @@ typedef enum {
   ND_SUB, // -
   ND_MUL, // *
   ND_DIV, // /
+  ND_EQ,  // ==
+  ND_NE,  // !=
+  ND_LT,  // <
+  ND_LE,  // <=
   ND_NUM, // 整数
 } NodeKind;
 
@@ -171,49 +202,93 @@ Node *new_node_num(int val) {
 }
 
 Node *expr();
+Node *equality();
+Node *relational();
+Node *add();
 Node *mul();
 Node *unary();
 Node *primary();
 
+// expr = equality
 Node *expr() {
+  return equality();
+}
+
+// equality = relational ("==" relational | "!=" relational)*
+Node *equality() {
+  Node *node = relational();
+
+  for (;;) {
+    if (consume("=="))
+      node = new_node(ND_EQ, node, relational());
+    else if (consume("!="))
+      node = new_node(ND_NE, node, relational());
+    else
+      return node;
+  }
+}
+
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+Node *relational() {
+  Node *node = add();
+
+  for (;;) {
+    if (consume("<"))
+      node = new_node(ND_LT, node, add());
+    else if (consume("<="))
+      node = new_node(ND_LE, node, add());
+    else if (consume(">"))
+      node = new_node(ND_LT, add(), node);
+    else if (consume(">="))
+      node = new_node(ND_LE, add(), node);
+    else
+      return node;
+  }
+}
+
+// add = mul ("+" mul | "-" mul)*
+Node *add() {
   Node *node = mul();
 
   for (;;) {
-    if (consume('+'))
+    if (consume("+"))
       node = new_node(ND_ADD, node, mul());
-    else if (consume('-'))
+    else if (consume("-"))
       node = new_node(ND_SUB, node, mul());
     else
       return node;
   }
 }
 
+// mul = unary ("*" unary | "/" unary)*
 Node *mul() {
   Node *node = unary();
 
   for (;;) {
-    if (consume('*'))
+    if (consume("*"))
       node = new_node(ND_MUL, node, unary());
-    else if (consume('/'))
+    else if (consume("/"))
       node = new_node(ND_DIV, node, unary());
     else
       return node;
   }
 }
 
+// unary = ("+" | "-")? primary
 Node *unary() {
-  if (consume('+'))
+  if (consume("+"))
     return primary();
-  if (consume('-'))
+  if (consume("-"))
     return new_node(ND_SUB, new_node_num(0), primary());
   return primary();
 }
 
+// primary = num | "(" expr ")"
 Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
-  if (consume('(')) {
+  if (consume("(")) {
     Node *node = expr();
-    expect(')');
+    expect(")");
     return node;
   }
 
@@ -233,6 +308,8 @@ void gen(Node *node) {
   printf("  "x64_pop_rgst("$r1")"\n");
   printf("  "x64_pop_rgst("$r0")"\n");
 
+  static int count_eq, count_ne, count_lt, count_le;
+
   switch (node->kind) {
   case ND_ADD:
     printf("  "x64_add_rgst("$r0", "$r1")"\n");
@@ -245,6 +322,26 @@ void gen(Node *node) {
     break;
   case ND_DIV:
     printf("  "x64_idiv("$r0", "$r1")"\n");
+    break;
+  case ND_EQ:
+    ++count_eq;
+    printf("  "x64_cmp("$r0", "$r1")"\n");
+    printf("  "x64_sete("$r0")"\n", count_eq, count_eq);
+    break;
+  case ND_NE:
+    ++count_ne;
+    printf("  "x64_cmp("$r0", "$r1")"\n");
+    printf("  "x64_setne("$r0")"\n", count_ne, count_ne);
+    break;
+  case ND_LT:
+    ++count_lt;
+    printf("  "x64_cmp("$r0", "$r1")"\n");
+    printf("  "x64_setl("$r0")"\n", count_lt, count_lt);
+    break;
+  case ND_LE:
+    ++count_le;
+    printf("  "x64_cmp("$r0", "$r1")"\n");
+    printf("  "x64_setle("$r0")"\n", count_le, count_le);
     break;
   }
 
