@@ -1,8 +1,16 @@
-CFLAGS=-std=c11 -g -static
+CFLAGS=-std=c11 -g -static -Wall
+SRCS=$(wildcard *.c)
+OBJS=$(SRCS:.c=.o)
 
-Temple_cc: Temple_cc.c
+Temple_cc: $(OBJS)
+		$(CC) -o Temple_cc $(OBJS) $(LDFLAGS)
+
+$(OBJS): Temple_cc.h
+
+test: Temple_cc
+		./test.sh
 
 clean:
-	rm -f Temple_cc *.o *~ tmp*
+		rm -f Temple_cc *.o *~ tmp*
 
 .PHONY: test clean
