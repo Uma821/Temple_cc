@@ -7,9 +7,10 @@ int main(int argc, char **argv) {
   }
 
   // トークナイズしてパースする
+  // 結果はcodeに保存される
   user_input = argv[1];
-  token = tokenize();
-  Node *node = expr();
+  tokenize();
+  program();
 
   // アセンブリの前半部分を出力
   printf("  seti main\n");
@@ -182,12 +183,25 @@ int main(int argc, char **argv) {
 
   printf("main:\n");
 
-  // 抽象構文木を下りながらコード生成
-  gen(node);
+  // プロローグ
+  // 変数26個分の領域を確保する
+  printf("  "x64_push_rgst(x64_rbp)"\n");
+  printf("  "x64_mov_rgst(x64_rbp, "$sp")"\n");
+  printf("  "x64_sub_immed("$sp", "52")"\n");
 
-  // スタックトップに式全体の値が残っているはずなので
-  // それをr0にロードして関数からの戻り値とする
-  printf("  "x64_pop_rgst("$r0")"\n");
+  // 先頭の式から順にコード生成
+  for (int i = 0; code[i]; i++) {
+    gen(code[i]);
+
+    // 式の評価結果としてスタックに一つの値が残っている
+    // はずなので、スタックが溢れないようにポップしておく
+    printf("  "x64_pop_rgst("$r0")"\n");
+  }
+
+  // エピローグ
+  // 最後の式の結果がRAXに残っているのでそれが返り値(仮)になる
+  printf("  "x64_mov_rgst("$sp", x64_rbp)"\n");
+  printf("  "x64_pop_rgst(x64_rbp)"\n");
   printf("  jl $allone 111 $ra\n");
   return 0;
 }

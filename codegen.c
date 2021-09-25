@@ -1,9 +1,36 @@
 #include "Temple_cc.h"
 
+void gen_lval(Node *node) {
+  if (node->kind != ND_LVAR)
+    error("代入の左辺値が変数ではありません");
+
+  printf("  "x64_mov_rgst("$r0", x64_rbp)"\n");
+  printf("  "x64_sub_immed("$r0", "%d")"\n", node->offset);
+  printf("  "x64_push_rgst("$r0")"\n");
+}
+
 void gen(Node *node) {
-  if (node->kind == ND_NUM) {
+  switch (node->kind) {
+  case ND_NUM:
     printf("  "x64_push_immed("%d")"\n", node->val);
     return;
+  case ND_LVAR:
+    gen_lval(node);
+    printf("  "x64_pop_rgst("$r0")"\n");
+    printf("  "x64_mov_mem_to_rgst("$r0", "$r0")"\n");
+    printf("  "x64_push_rgst("$r0")"\n");
+    return;
+  case ND_ASSIGN:
+    gen_lval(node->lhs);
+    gen(node->rhs);
+
+    printf("  "x64_pop_rgst("$r1")"\n");
+    printf("  "x64_pop_rgst("$r0")"\n");
+    printf("  "x64_mov_rgst_to_mem("$r0", "$r1")"\n");
+    printf("  "x64_push_rgst("$r1")"\n");
+    return;
+  default:
+    break;
   }
 
   gen(node->lhs);
@@ -47,7 +74,7 @@ void gen(Node *node) {
     printf("  "x64_cmp("$r0", "$r1")"\n");
     printf("  "x64_setle("$r0")"\n", count_le, count_le);
     break;
-  case ND_NUM:
+  default:
     break;
   }
 

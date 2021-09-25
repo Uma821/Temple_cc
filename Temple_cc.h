@@ -5,10 +5,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define x64_mov(rgst, immed) "seti "immed"\n  move "rgst
-#define x64_add_immed(rgst, immed) "seti "immed"\n  move $t0\n  nor $allone\n  add "rgst"\n  add $t0\n  move "rgst
+#define x64_rbp "$r22"
+
+#define x64_mov_immed(rgst, immed) "seti "immed"\n  move "rgst
+#define x64_mov_rgst(rgst1, rgst2) "nor $allone\n  add "rgst2"\n  move "rgst1
+#define x64_mov_mem_to_rgst(rgst, mem) "ld "mem"\n  move "rgst
+#define x64_mov_rgst_to_mem(mem, rgst) "nor $allone\n  add "rgst"\n  sd "mem
+#define x64_add_immed(rgst, immed) "seti "immed"\n  add "rgst"\n  move "rgst
 #define x64_add_rgst(rgst1, rgst2) "nor $allone\n  add "rgst1"\n  add "rgst2"\n  move "rgst1
-#define x64_sub_immed(rgst, immed) "seti "immed"\n  move $t0\n  nor $allone\n  nor $t0\n  add $one\n  add "rgst"\n  move "rgst
+#define x64_sub_immed(rgst, immed) "seti "immed"\n  nor $zero\n  add $one\n  add "rgst"\n  move "rgst
 #define x64_sub_rgst(rgst1, rgst2) "nor $allone\n  nor "rgst2"\n  add $one\n  add "rgst1"\n  move "rgst1
 #define x64_push_immed(immed) "seti -2\n  add $sp\n  move $sp\n  seti "immed"\n  sd $sp"
 #define x64_push_rgst(rgst) "seti -2\n  add $sp\n  move $sp\n  nor $allone\n  add "rgst"\n  sd $sp"
@@ -30,6 +35,7 @@
 // トークンの種類
 typedef enum {
   TK_RESERVED, // 記号
+  TK_IDENT,    // 識別子
   TK_NUM,      // 整数トークン
   TK_EOF,      // 入力の終わりを表すトークン
 } TokenKind;
@@ -55,7 +61,9 @@ void error_at(char *loc, char *fmt, ...);
 bool consume(char *op);
 void expect(char *op);
 int expect_number();
-Token *tokenize();
+bool at_eof();
+Token *consume_ident();
+void tokenize();
 
 //
 // parse.c
@@ -63,15 +71,17 @@ Token *tokenize();
 
 // 抽象構文木のノードの種類
 typedef enum {
-  ND_ADD, // +
-  ND_SUB, // -
-  ND_MUL, // *
-  ND_DIV, // /
-  ND_EQ,  // ==
-  ND_NE,  // !=
-  ND_LT,  // <
-  ND_LE,  // <=
-  ND_NUM, // 整数
+  ND_ADD,    // +
+  ND_SUB,    // -
+  ND_MUL,    // *
+  ND_DIV,    // /
+  ND_ASSIGN, // =
+  ND_EQ,     // ==
+  ND_NE,     // !=
+  ND_LT,     // <
+  ND_LE,     // <=
+  ND_LVAR,   // ローカル変数
+  ND_NUM,    // 整数
 } NodeKind;
 
 typedef struct Node Node;
@@ -82,9 +92,12 @@ struct Node {
   Node *lhs;     // 左辺
   Node *rhs;     // 右辺
   int val;       // kindがND_NUMの場合のみ使う
+  int offset;    // kindがND_LVARの場合のみ使う
 };
 
-Node *expr();
+extern Node *code[100];
+
+void program();
 
 //
 // codegen.c
