@@ -29,6 +29,13 @@ void gen(Node *node) {
     printf("  "x64_mov_rgst_to_mem("$r0", "$r1")"\n");
     printf("  "x64_push_rgst("$r1")"\n");
     return;
+  case ND_RETURN:
+    gen(node->lhs);
+    printf("  "x64_pop_rgst("$r0")"\n");
+    printf("  "x64_mov_rgst("$sp", x64_rbp)"\n");
+    printf("  "x64_pop_rgst(x64_rbp)"\n");
+    printf("  jl $allone 111 $ra\n");
+    return;
   default:
     break;
   }

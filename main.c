@@ -200,8 +200,8 @@ int main(int argc, char **argv) {
 
   // エピローグ
   // 最後の式の結果がRAXに残っているのでそれが返り値(仮)になる
-  printf("  "x64_mov_rgst("$sp", x64_rbp)"\n");
-  printf("  "x64_pop_rgst(x64_rbp)"\n");
-  printf("  jl $allone 111 $ra\n");
+  //printf("  "x64_mov_rgst("$sp", x64_rbp)"\n");
+  //printf("  "x64_pop_rgst(x64_rbp)"\n");
+  //printf("  jl $allone 111 $ra\n");
   return 0;
 }
