@@ -1,5 +1,10 @@
 #include "Temple_cc.h"
 
+static int count(void) {
+  static int i = 1;
+  return i++;
+}
+
 void gen_lval(Node *node) {
   if (node->kind != ND_LVAR)
     error("代入の左辺値が変数ではありません");
@@ -36,6 +41,24 @@ void gen(Node *node) {
     printf("  "x64_pop_rgst(x64_rbp)"\n");
     printf("  jl $allone 111 $ra\n");
     return;
+  case ND_IF: {
+    int c = count();
+    gen(node->cond);
+    printf("  "x64_pop_rgst("$r0")"\n");
+    printf("  "x64_cmp_immed("$r0", "0")"\n");
+    printf("  "x64_je(".L.else.%d")"\n", c);
+    gen(node->then);
+    printf("  "x64_pop_rgst("$r0")"\n");
+    printf("  "x64_jmp(".L.end.%d")"\n", c);
+    printf(".L.else.%d:\n", c);
+    if (node->els){
+      gen(node->els);
+      printf("  "x64_pop_rgst("$r0")"\n");
+    }
+    printf(".L.end.%d:\n", c);
+    return;
+  }
+    
   default:
     break;
   }

@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
   printf("main:\n");
 
   // プロローグ
-  // 変数26個分の領域を確保する
+  // 使用した変数分の領域を確保する
   printf("  "x64_push_rgst(x64_rbp)"\n");
   printf("  "x64_mov_rgst(x64_rbp, "$sp")"\n");
   printf("  "x64_sub_immed("$sp", "%d")"\n", locals?locals->offset:0);

@@ -41,6 +41,15 @@ bool consume(char *op) {
   return true;
 }
 
+bool consume_keyword(char *op) {
+  if (token->kind != TK_KEYWORD ||
+      strlen(op) != token->len ||
+      memcmp(token->str, op, token->len))
+    return false;
+  token = token->next;
+  return true;
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
@@ -112,6 +121,15 @@ int is_alnum(char c) {
          (c == '_');
 }
 
+// キーワードかどうかを調べる。
+static int is_keyword(const char * const p) {
+  static char const * const kws[] = {"if", "else", "for", "while", "return"};
+  for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++)
+    if (strncmp(p, kws[i], strlen(kws[i])) == 0 && !is_alnum(p[strlen(kws[i])]))
+      return strlen(kws[i]);
+  return 0;
+}
+
 // 入力文字列user_inputをトークナイズしてそれを返す
 void tokenize() {
   char *p = user_input;
@@ -135,10 +153,11 @@ void tokenize() {
       continue;
     }
 
-    // return
-    if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6])) {
-      cur = new_token(TK_RETURN, cur, p, 6);
-      p += 6;
+    // キーワード
+    int key_len;
+    if ((key_len = is_keyword(p))) {
+      cur = new_token(TK_KEYWORD, cur, p, key_len);
+      p += key_len;
       continue;
     }
 
