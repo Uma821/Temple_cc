@@ -58,6 +58,23 @@ void gen(Node *node) {
     printf(".L.end.%d:\n", c);
     return;
   }
+  case ND_LOOP: {
+    int c = count();
+    if (node->init)
+      gen(node->init);
+    printf(".L.begin.%d:\n", c);
+    if (node->cond) {
+      gen(node->cond);
+      printf("  "x64_cmp_immed("$r0", "0")"\n");
+      printf("  "x64_je(".L.end.%d")"\n", c);
+    }
+    gen(node->then);
+    if (node->inc)
+      gen(node->inc);
+    printf("  "x64_jmp(".L.begin.%d")"\n", c);
+    printf(".L.end.%d:\n", c);
+    return;
+  }
     
   default:
     break;
