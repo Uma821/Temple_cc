@@ -50,14 +50,24 @@ void program() {
 }
 
 // stmt = expr? ";"
+//      | "{" stmt* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
-//      | "while" "(" expr ")" stmt
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//      | "while" "(" expr ")" stmt
 //      | "return" expr ";"
 static Node *stmt() {
   Node *node;
 
-  if (consume_keyword("if")) {
+  if (consume("{")) {
+    Node head;
+    head.next = NULL;
+    Node *cur = &head;
+    while (!consume("}"))
+      cur = cur->next = stmt();
+    node = new_node(ND_BLOCK, NULL, NULL);
+    node->body = head.next;
+    return node;
+  } else if (consume_keyword("if")) {
     node = new_node(ND_IF, NULL, NULL);
     expect("(");
     node->cond = expr();

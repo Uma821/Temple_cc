@@ -101,6 +101,7 @@ typedef enum {
   ND_IF,     // if
   ND_LOOP,   // for,while
   ND_RETURN, // return
+  ND_BLOCK,  // { ... }
   ND_LVAR,   // ローカル変数
   ND_NUM,    // 整数
 } NodeKind;
@@ -110,6 +111,7 @@ typedef struct Node Node;
 // 抽象構文木のノードの型
 struct Node {
   NodeKind kind; // ノードの型
+  Node *next;    // 次のノード
   Node *lhs;     // 左辺
   Node *rhs;     // 右辺
   int val;       // kindがND_NUMの場合のみ使う
@@ -119,6 +121,7 @@ struct Node {
   Node *els;     // kindがND_IFの場合のみ使う
   Node *init;    // kindがND_LOOPの場合のみ使う
   Node *inc;     // kindがND_LOOPの場合のみ使う
+  Node *body;    // kindがND_BLOCK(複文)の場合のみ使う
 };
 
 extern Node *code[100];
