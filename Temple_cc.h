@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 700 // POSIX 関数の要求(strndup)
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -5,31 +6,34 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define x64_rbp "$r22"
+#define rbp "$r22"
 
-#define x64_mov_immed(rgst, immed) "seti "immed"\n  move "rgst
-#define x64_mov_rgst(rgst1, rgst2) "nor $allone\n  add "rgst2"\n  move "rgst1
-#define x64_mov_mem_to_rgst(rgst, mem) "ld "mem"\n  move "rgst
-#define x64_mov_rgst_to_mem(mem, rgst) "nor $allone\n  add "rgst"\n  sd "mem
-#define x64_add_immed(rgst, immed) "seti "immed"\n  add "rgst"\n  move "rgst
-#define x64_add_rgst(rgst1, rgst2) "nor $allone\n  add "rgst1"\n  add "rgst2"\n  move "rgst1
-#define x64_sub_immed(rgst, immed) "seti "immed"\n  nor $zero\n  add $one\n  add "rgst"\n  move "rgst
-#define x64_sub_rgst(rgst1, rgst2) "nor $allone\n  nor "rgst2"\n  add $one\n  add "rgst1"\n  move "rgst1
-#define x64_push_immed(immed) "seti -2\n  add $sp\n  move $sp\n  seti "immed"\n  sd $sp"
-#define x64_push_rgst(rgst) "seti -2\n  add $sp\n  move $sp\n  nor $allone\n  add "rgst"\n  sd $sp"
-#define x64_pop_rgst(rgst) "ld $sp\n  move "rgst"\n  seti 2\n  add $sp\n  move $sp"
-#define x64_cmp(rgst1, rgst2) "nor $allone\n  nor "rgst2"\n  add $one\n  add "rgst1
-#define x64_cmp_immed(rgst, immed) "seti "immed"\n  nor $zero\n  add $one\n  add "rgst
-#define x64_sete(rgst)  "seti sete_end%d\n  move $ra\n  seti 1\n  move "rgst"\n  jl $ra 100 $one\n  add $allone\n  move "rgst"\nsete_end%d:"
-#define x64_setne(rgst) "seti setne_end%d\n  move $ra\n  seti 0\n  move "rgst"\n  jl $ra 100 $one\n  add $one\n  move "rgst"\nsetne_end%d:"
-#define x64_setl(rgst)  "seti setl_end%d\n  move $ra\n  seti 1\n  move "rgst"\n  jl $ra 010 $one\n  add $allone\n  move "rgst"\nsetl_end%d:"
-#define x64_setle(rgst) "seti setle_end%d\n  move $ra\n  seti 1\n  move "rgst"\n  jl $ra 110 $one\n  add $allone\n  move "rgst"\nsetle_end%d:"
-#define x64_je(lavel) "seti "lavel"\n  move $t0\n  jl $t0 100 $ra\n"
-#define x64_jmp(lavel) "seti "lavel"\n  move $t0\n  jl $t0 111 $ra\n"
+#define mov_immed(rgst, immed) "seti "immed"\n  move "rgst
+#define mov_rgst(rgst1, rgst2) "nor $allone\n  add "rgst2"\n  move "rgst1
+#define mov_mem_to_rgst(rgst, mem) "ld "mem"\n  move "rgst
+#define mov_rgst_to_mem(mem, rgst) "nor $allone\n  add "rgst"\n  sd "mem
+#define add_immed(rgst, immed) "seti "immed"\n  add "rgst"\n  move "rgst
+#define add_rgst(rgst1, rgst2) "nor $allone\n  add "rgst1"\n  add "rgst2"\n  move "rgst1
+#define sub_immed(rgst, immed) "seti "immed"\n  nor $zero\n  add $one\n  add "rgst"\n  move "rgst
+#define sub_rgst(rgst1, rgst2) "nor $allone\n  nor "rgst2"\n  add $one\n  add "rgst1"\n  move "rgst1
+#define push_immed(immed) "seti -2\n  add $sp\n  move $sp\n  seti "immed"\n  sd $sp"
+#define push_rgst(rgst) "seti -2\n  add $sp\n  move $sp\n  nor $allone\n  add "rgst"\n  sd $sp"
+#define pop(rgst) "ld $sp\n  move "rgst"\n  seti 2\n  add $sp\n  move $sp"
+#define cmp(rgst1, rgst2) "nor $allone\n  nor "rgst2"\n  add $one\n  add "rgst1
+#define cmp_immed(rgst, immed) "seti "immed"\n  nor $zero\n  add $one\n  add "rgst
+#define sete(rgst)  "seti sete_end%d\n  move $ra\n  seti 1\n  move "rgst"\n  jl $ra 100 $one\n  add $allone\n  move "rgst"\nsete_end%d:"
+#define setne(rgst) "seti setne_end%d\n  move $ra\n  seti 0\n  move "rgst"\n  jl $ra 100 $one\n  add $one\n  move "rgst"\nsetne_end%d:"
+#define setl(rgst)  "seti setl_end%d\n  move $ra\n  seti 1\n  move "rgst"\n  jl $ra 010 $one\n  add $allone\n  move "rgst"\nsetl_end%d:"
+#define setle(rgst) "seti setle_end%d\n  move $ra\n  seti 1\n  move "rgst"\n  jl $ra 110 $one\n  add $allone\n  move "rgst"\nsetle_end%d:"
+#define je(lavel) "seti "lavel"\n  move $t0\n  jl $t0 100 $ra\n"
+#define jmp(lavel) "seti "lavel"\n  move $t0\n  jl $t0 111 $ra\n"
 #define call(immed) "jl $zero 000 $t0\n  seti -2\n  add $sp\n  move $sp\n  seti 16\n  add $t0\n  sd $sp\n  seti "immed"\n  move $t0\n  jl $t0 111 $ra"
 #define ret() "ld $sp\n  move $t0\n  seti 2\n  add $sp\n  move $sp\n  jl $t0 111 $ra"
-#define x64_imul(rgst1, rgst2) "nor $allone\n  add "rgst1"\n  move $t1\n  nor $allone\n  add "rgst2"\n  move $t2\n  "call("MUL")"\n  nor $allone\n  add $t3\n  move "rgst1
-#define x64_idiv(rgst1, rgst2) "nor $allone\n  add "rgst1"\n  move $t1\n  nor $allone\n  add "rgst2"\n  move $t2\n  "call("PRE_DIV")"\n  nor $allone\n  add $t3\n  move "rgst1
+#define imul(rgst1, rgst2) "nor $allone\n  add "rgst1"\n  move $t1\n  nor $allone\n  add "rgst2"\n  move $t2\n  "call("MUL")"\n  nor $allone\n  add $t3\n  move "rgst1
+#define idiv(rgst1, rgst2) "nor $allone\n  add "rgst1"\n  move $t1\n  nor $allone\n  add "rgst2"\n  move $t2\n  "call("PRE_DIV")"\n  nor $allone\n  add $t3\n  move "rgst1
+
+typedef struct Type Type;
+typedef struct Node Node;
 
 //
 // tokenize.c
@@ -67,6 +71,7 @@ bool consume_keyword(char *op);
 void expect(char *op);
 int expect_number();
 bool at_eof();
+bool at_block();
 Token *consume_ident();
 void tokenize();
 
@@ -80,6 +85,7 @@ typedef struct LVar LVar;
 struct LVar {
   LVar *next; // 次の変数かNULL
   char *name; // 変数の名前
+  Type *ty;   // Type
   int len;    // 名前の長さ
   int offset; // RBPからのオフセット
 };
@@ -102,6 +108,7 @@ typedef enum {
   ND_LOOP,   // for,while
   ND_RETURN, // return
   ND_BLOCK,  // { ... }
+  ND_FUNCALL, // 関数呼び出し
   ND_LVAR,   // ローカル変数
   ND_NUM,    // 整数
 } NodeKind;
@@ -115,21 +122,60 @@ struct Node {
   Node *lhs;     // 左辺
   Node *rhs;     // 右辺
   int val;       // kindがND_NUMの場合のみ使う
-  int offset;    // kindがND_LVARの場合のみ使う
+  LVar *lvar;     // kindがND_LVARの場合のみ使う
   Node *cond;    // kindがND_IF,ND_LOOPの場合のみ使う
   Node *then;    // kindがND_IF,ND_LOOPの場合のみ使う
   Node *els;     // kindがND_IFの場合のみ使う
   Node *init;    // kindがND_LOOPの場合のみ使う
   Node *inc;     // kindがND_LOOPの場合のみ使う
   Node *body;    // kindがND_BLOCK(複文)の場合のみ使う
+  char *funcname; // kindがND_FUNCALLの場合のみ使う
+  Node *args;     // kindがND_FUNCALLの場合のみ使う
 };
 
-extern Node *code[100];
+// 関数毎に内容、ローカル変数、ローカル変数用のスタックサイズの保存
+typedef struct Function Function;
+struct Function {
+  Function *next;
+  char *name;
+  LVar *params;
 
-void program();
+  Node *body;
+  LVar *locals;
+  int stack_size;
+};
+
+Function *parse();
+
+//
+// type.c
+//
+
+typedef enum {
+  TY_INT,
+  TY_FUNC,
+} TypeKind;
+
+struct Type {
+  TypeKind kind;
+
+  // Declaration
+  char *name;
+
+  // Function type
+  Type *return_ty;
+  Type *params;
+  Type *next;
+};
+
+extern Type *ty_int;
+
+Type *new_type(TypeKind kind);
+Type *func_type(Type *return_ty);
+Type *copy_type(Type *ty);
 
 //
 // codegen.c
 //
 
-void gen();
+void codegen(Function *prog);

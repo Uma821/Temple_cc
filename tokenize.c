@@ -70,13 +70,21 @@ int expect_number() {
   return val;
 }
 
+bool at_block() {
+  if (token->kind != TK_RESERVED ||
+      token->len != 1 ||
+      token->str[0] != '{')
+    return false;
+  return true;
+}
+
 bool at_eof() {
   return token->kind == TK_EOF;
 }
 
 Token *consume_ident() {
   if (token->kind != TK_IDENT)
-      return NULL;
+    return NULL;
   Token *tok = token;
   token = token->next;
   return tok;
@@ -93,7 +101,7 @@ static Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
 }
 
 static bool startswith(char *p, char *q) {
-  return memcmp(p, q, strlen(q)) == 0;
+  return strncmp(p, q, strlen(q)) == 0;
 }
 
 // cが識別子の最初の文字として有効な場合、trueを返す

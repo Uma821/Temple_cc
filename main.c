@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   // 結果はcodeに保存される
   user_input = argv[1];
   tokenize();
-  program();
+  Function *prog = parse();
 
   // アセンブリの前半部分を出力
   printf("  seti main\n");
@@ -18,6 +18,7 @@ int main(int argc, char **argv) {
   printf("  seti 10000\n");
   printf("  move $sp\n");
   printf("  jl $t0 111 $ra\n");
+  printf("  jl $allone 111 $ra\n");
 
   // 乗算関数MUL ($t1(掛けられる数), $t2(掛ける数)に与えられた値の乗算結果を$t3に格納する)
   printf("MUL:\n");
@@ -118,7 +119,7 @@ int main(int argc, char **argv) {
   printf("  move $t3\n");
   printf("  add $one\n");
   printf("  move $t0\n");
-  printf("  "x64_push_rgst("$t2")"\n");
+  printf("  "push_rgst("$t2")"\n");
   printf("LP1:\n");
   printf("  nor $allone\n");
   printf("  nor $t2\n");
@@ -180,28 +181,6 @@ int main(int argc, char **argv) {
   printf("  move $sp\n");
   printf("  "ret()"\n");
 
-
-  printf("main:\n");
-
-  // プロローグ
-  // 使用した変数分の領域を確保する
-  printf("  "x64_push_rgst(x64_rbp)"\n");
-  printf("  "x64_mov_rgst(x64_rbp, "$sp")"\n");
-  printf("  "x64_sub_immed("$sp", "%d")"\n", locals?locals->offset:0);
-
-  // 先頭の式から順にコード生成
-  for (int i = 0; code[i]; i++) {
-    gen(code[i]);
-
-    // 式の評価結果としてスタックに一つの値が残っている
-    // はずなので、スタックが溢れないようにポップしておく
-    printf("  "x64_pop_rgst("$r0")"\n");
-  }
-
-  // エピローグ
-  // 最後の式の結果がRAXに残っているのでそれが返り値(仮)になる
-  //printf("  "x64_mov_rgst("$sp", x64_rbp)"\n");
-  //printf("  "x64_pop_rgst(x64_rbp)"\n");
-  //printf("  jl $allone 111 $ra\n");
+  codegen(prog);
   return 0;
 }
