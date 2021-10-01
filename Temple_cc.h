@@ -95,22 +95,24 @@ extern LVar *locals;
 
 // 抽象構文木のノードの種類
 typedef enum {
-  ND_ADD,    // +
-  ND_SUB,    // -
-  ND_MUL,    // *
-  ND_DIV,    // /
-  ND_ASSIGN, // =
-  ND_EQ,     // ==
-  ND_NE,     // !=
-  ND_LT,     // <
-  ND_LE,     // <=
-  ND_IF,     // if
-  ND_LOOP,   // for,while
-  ND_RETURN, // return
-  ND_BLOCK,  // { ... }
+  ND_ADD,     // +
+  ND_SUB,     // -
+  ND_MUL,     // *
+  ND_DIV,     // /
+  ND_ASSIGN,  // =
+  ND_EQ,      // ==
+  ND_NE,      // !=
+  ND_LT,      // <
+  ND_LE,      // <=
+  ND_IF,      // if
+  ND_LOOP,    // for,while
+  ND_RETURN,  // return
+  ND_BLOCK,   // { ... }
   ND_FUNCALL, // 関数呼び出し
-  ND_LVAR,   // ローカル変数
-  ND_NUM,    // 整数
+  ND_ADDR,    // * unary
+  ND_DEREF,   // & unary
+  ND_LVAR,    // ローカル変数
+  ND_NUM,     // 整数
 } NodeKind;
 
 typedef struct Node Node;

@@ -13,11 +13,9 @@ int main(int argc, char **argv) {
   Function *prog = parse();
 
   // アセンブリの前半部分を出力
-  printf("  seti main\n");
-  printf("  move $t0\n");
   printf("  seti 10000\n");
   printf("  move $sp\n");
-  printf("  jl $t0 111 $ra\n");
+  printf("  "call("main")"\n");
   printf("  jl $allone 111 $ra\n");
 
   // 乗算関数MUL ($t1(掛けられる数), $t2(掛ける数)に与えられた値の乗算結果を$t3に格納する)

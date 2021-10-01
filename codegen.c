@@ -3,6 +3,8 @@
 static char *argreg[] = {"$r1", "$r2", "$r3", "$r4", "$r5", "$r6"};
 static Function *current_fn;
 
+static void gen();
+
 static int count(void) {
   static int i = 1;
   return i++;
@@ -15,12 +17,20 @@ static int align_to(int n, int align) {
 }
 
 void gen_lval(Node *node) {
-  if (node->kind != ND_LVAR)
-    error("代入の左辺値が変数ではありません");
+  switch (node->kind) {
+  case ND_LVAR:
+    printf("  "mov_rgst("$r0", rbp)"\n");
+    printf("  "sub_immed("$r0", "%d")"\n", node->lvar->offset);
+    printf("  "push_rgst("$r0")"\n");
+    return;
+  case ND_DEREF:
+    gen(node->lhs);
+    return;
 
-  printf("  "mov_rgst("$r0", rbp)"\n");
-  printf("  "sub_immed("$r0", "%d")"\n", node->lvar->offset);
-  printf("  "push_rgst("$r0")"\n");
+  default:
+    error("代入の左辺値が変数ではありません");
+  }
+
 }
 
 void gen(Node *node) {
@@ -34,6 +44,16 @@ void gen(Node *node) {
     printf("  "mov_mem_to_rgst("$r0", "$r0")"\n");
     printf("  "push_rgst("$r0")"\n");
     return;
+  case ND_ADDR:
+    gen_lval(node->lhs);
+    return;
+  case ND_DEREF:
+    gen(node->lhs);
+    printf("  "pop("$r0")"\n");
+    printf("  "mov_mem_to_rgst("$r0", "$r0")"\n");
+    printf("  "push_rgst("$r0")"\n");
+    return;
+
   case ND_ASSIGN:
     gen_lval(node->lhs);
     gen(node->rhs);
@@ -55,6 +75,7 @@ void gen(Node *node) {
     printf("  "pop("$r0")"\n");
     printf("  "jmp(".L.return.%s")"\n", current_fn->name);
     return;
+
   case ND_IF: {
     int c = count();
     gen(node->cond);
@@ -171,7 +192,7 @@ static void assign_lvar_offsets(Function *prog) {
       offset += 2;
       lvar->offset = offset;
     }
-    fn->stack_size = align_to(offset, 2); // stack_sizeを16の倍数にする(RSPを16の倍数にしなければならないらしい)
+    fn->stack_size = align_to(offset, 2); // stack_sizeを2の倍数にする(RSPを16の倍数にしなければならないらしい)
   }
 }
 

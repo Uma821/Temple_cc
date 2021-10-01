@@ -16,6 +16,7 @@ assert() {
   fi
 }
 
+assert 55 'sum(m, n) { acc = 0; for (i = m; i <= n; i = i +1) acc = acc + i; return acc; } main() { return sum(1, 10); }'
 assert 0 'main() { return fib(2); } fib(x) { if (x<=1) return 1; return fib(1)-1; }'
 assert 0 'main() { return 0; }'
 assert 42 ' main() { return 42; }'
@@ -74,6 +75,14 @@ assert 3 'main( ){ for (;;) {return 3;} return 5; }'
 
 assert 10 'main(){i=0; while(i<10) i=i+1; return i; }'
 assert 10 'main(){ i=0; while(i<10) { i=i+1; } return i; }'
+
+assert 3 'main(){ x=3; return *&x; }'
+assert 3 'main(){ x=3; y=&x; z=&y; return **z; }'
+assert 5 'main(){ x=3; y=5; return *(&x+2); }'
+assert 3 'main(){ x=3; y=5; return *(&y-2); }'
+assert 5 'main(){ x=3; y=&x; *y=5; return x; }'
+assert 7 'main(){ x=3; y=5; *(&x+2)=7; return y; }'
+assert 7 'main(){ x=3; y=5; *(&y-2)=7; return x; }'
 
 assert 3 'main(){ return ret3(); }ret3() { return 3; }'
 assert 5 'main(){ return ret5(); } ret5() { return 5; }'
