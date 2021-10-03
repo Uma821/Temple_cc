@@ -68,6 +68,7 @@ void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
 bool consume(char *op);
 bool consume_keyword(char *op);
+bool equal_keyword(char *op);
 void expect(char *op);
 int expect_number();
 bool at_eof();
@@ -109,8 +110,8 @@ typedef enum {
   ND_RETURN,  // return
   ND_BLOCK,   // { ... }
   ND_FUNCALL, // 関数呼び出し
-  ND_ADDR,    // * unary
-  ND_DEREF,   // & unary
+  ND_ADDR,    // 単項*
+  ND_DEREF,   // 単項&
   ND_LVAR,    // ローカル変数
   ND_NUM,     // 整数
 } NodeKind;
@@ -119,19 +120,20 @@ typedef struct Node Node;
 
 // 抽象構文木のノードの型
 struct Node {
-  NodeKind kind; // ノードの型
-  Node *next;    // 次のノード
-  Type *ty;      // そのノードのタイプ,intやintへのポインタなど
-  Node *lhs;     // 左辺
-  Node *rhs;     // 右辺
-  int val;       // kindがND_NUMの場合のみ使う
+  NodeKind kind;  // ノードの型
+  Node *next;     // 次のノード
+  Token *tok;     // このノードのトークン
+  Type *ty;       // そのノードのタイプ,intやintへのポインタなど
+  Node *lhs;      // 左辺
+  Node *rhs;      // 右辺
+  int val;        // kindがND_NUMの場合のみ使う
   LVar *lvar;     // kindがND_LVARの場合のみ使う
-  Node *cond;    // kindがND_IF,ND_LOOPの場合のみ使う
-  Node *then;    // kindがND_IF,ND_LOOPの場合のみ使う
-  Node *els;     // kindがND_IFの場合のみ使う
-  Node *init;    // kindがND_LOOPの場合のみ使う
-  Node *inc;     // kindがND_LOOPの場合のみ使う
-  Node *body;    // kindがND_BLOCK(複文)の場合のみ使う
+  Node *cond;     // kindがND_IF,ND_LOOPの場合のみ使う
+  Node *then;     // kindがND_IF,ND_LOOPの場合のみ使う
+  Node *els;      // kindがND_IFの場合のみ使う
+  Node *init;     // kindがND_LOOPの場合のみ使う
+  Node *inc;      // kindがND_LOOPの場合のみ使う
+  Node *body;     // kindがND_BLOCK(複文)の場合のみ使う
   char *funcname; // kindがND_FUNCALLの場合のみ使う
   Node *args;     // kindがND_FUNCALLの場合のみ使う
 };
@@ -162,10 +164,9 @@ typedef enum {
 
 struct Type {
   TypeKind kind;
-  // 〇へのポインタ
-  Type *base;
-  // 定義
-  char *name;
+  Type *base;  // 〇へのポインタ
+  char *name;  // 定義
+  Token *tok;  // 変数の位置情報など
   // 関数
   Type *return_ty;
   Type *params;
@@ -175,6 +176,7 @@ struct Type {
 Type *new_type(TypeKind kind);
 Type *func_type(Type *return_ty);
 bool is_integer(Type *ty);
+Type *pointer_to(Type *base);
 void add_type(Node *node);
 
 //
