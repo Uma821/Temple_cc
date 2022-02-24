@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define rbp "$r22"
 
@@ -115,6 +116,11 @@ typedef enum {
   ND_LVAR,    // ローカル変数
   ND_NUM,     // 整数
 } NodeKind;
+
+// 掛け算を行う
+extern bool use_func_MUL;
+// 割り算を行う
+extern bool use_func_DIV;
 
 typedef struct Node Node;
 

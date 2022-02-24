@@ -302,6 +302,7 @@ static Node *new_add(Node *lhs, Node *rhs) {
   }
 
   // ptr + num
+  use_func_MUL = true; // 現状シフト演算子を使わず掛け算として処理するため
   rhs = new_node(ND_MUL, rhs, new_node_num(2)); // シフト演算子を定義したら変更する
   return new_node(ND_ADD, lhs, rhs);
 }
@@ -317,6 +318,7 @@ static Node *new_sub(Node *lhs, Node *rhs) {
 
   // ptr - num
   if (lhs->ty->base && is_integer(rhs->ty)) {
+    use_func_MUL = true; // 現状シフト演算子を使わず掛け算として処理するため
     rhs = new_node(ND_MUL, rhs, new_node_num(2)); // シフト演算子を定義したら変更する
     add_type(rhs);
     Node *node = new_node(ND_SUB, lhs, rhs);
@@ -329,6 +331,7 @@ static Node *new_sub(Node *lhs, Node *rhs) {
   if (lhs->ty->base && rhs->ty->base) {
     Node *node = new_node(ND_SUB, lhs, rhs);
     node->ty = new_type(TY_INT);
+    use_func_DIV = true; // 現状シフト演算子を使わず割り算として処理するため
     return new_node(ND_DIV, node, new_node_num(2)); // シフト演算子を定義したら変更する
   }
 
@@ -357,11 +360,13 @@ static Node *mul() {
   Node *node = unary();
 
   for (;;) {
-    if (consume("*"))
+    if (consume("*")) {
+      use_func_MUL = true;
       node = new_node(ND_MUL, node, unary());
-    else if (consume("/"))
+    } else if (consume("/")) {
+      use_func_DIV = true;
       node = new_node(ND_DIV, node, unary());
-    else
+    } else
       return node;
   }
 }
