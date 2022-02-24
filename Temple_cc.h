@@ -85,11 +85,12 @@ typedef struct LVar LVar;
 
 // ローカル変数の型
 struct LVar {
-  LVar *next; // 次の変数かNULL
-  char *name; // 変数の名前
-  Type *ty;   // Type
-  int len;    // 名前の長さ
-  int offset; // RBPからのオフセット
+  LVar *next;    // 次の変数かNULL
+  char *name;    // 変数の名前
+  Type *ty;      // Type
+  int len;       // 名前の長さ
+  int lvar_size; // 変数の大きさ(バイト)
+  int offset;    // RBPからのオフセット
 };
 
 // ローカル変数
@@ -166,15 +167,17 @@ typedef enum {
   TY_INT,
   TY_PTR,
   TY_FUNC,
+  TY_ARRAY,
 } TypeKind;
 
 struct Type {
   TypeKind kind;
-  int size;    // sizeof
+  int size;       // sizeof
+  int array_size; // TY_ARRAY時の要素数
  
-  Type *base;  // 〇へのポインタ
-  char *name;  // 定義
-  Token *tok;  // 変数の位置情報など
+  Type *base;     // 〇へのポインタ, 〇の配列
+  char *name;     // 定義
+  Token *tok;     // 変数の位置情報など
   // 関数
   Type *return_ty;
   Type *params;
@@ -185,6 +188,7 @@ Type *new_type(TypeKind kind);
 Type *func_type(Type *return_ty);
 bool is_integer(Type *ty);
 Type *pointer_to(Type *base);
+Type *array_of(Type *base, int array_size);
 void add_type(Node *node);
 
 //

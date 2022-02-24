@@ -35,11 +35,18 @@ static Node *new_node_lvar(LVar *lvar, Token *tok) {
   return node;
 }
 
+static int lvar_size(Type *ty) {
+  if (ty->kind != TY_ARRAY) 
+    return 2;
+  return ty->array_size * lvar_size(ty->base);
+}
+
 static LVar *new_lvar(char *name, Type *ty) {
   LVar *lvar = calloc(1, sizeof(LVar));
   lvar->name = name;
   lvar->ty = ty;
   lvar->len = strlen(name);
+  lvar->lvar_size = lvar_size(ty);
   lvar->next = locals;
   locals = lvar;
   return lvar;
@@ -101,6 +108,12 @@ static Type *declarator(Type *ty) { // 宣言
 
   Token *tok_lval = token;
   char* name = get_ident();
+
+  while (consume("[")) {
+    int array_size = expect_number();
+    ty = array_of(ty, array_size);
+    expect("]");
+  }
   
   ty = type_suffix(ty); // 関数の宣言だった時の引数読み込み等
   ty->name = name;
@@ -414,7 +427,7 @@ static Node *primary() {
   if (consume_keyword("sizeof")) {
     Node *node = unary();
     add_type(node);
-    return new_node_num(node->ty->size);
+    return new_node_num(node->kind == ND_LVAR ? node->lvar->lvar_size : node->ty->size);
   }
 
   Token *tok = consume_ident();
@@ -428,10 +441,22 @@ static Node *primary() {
     if (!lvar) 
       error_at(token->str, "未定義の変数");
 
+    if (consume("[")) { // 添え字演算子
+      Node *node = expr();
+      expect("]");
+      // x[y]を*(x+y)に変換する
+      return new_node(ND_DEREF, new_add(new_node_lvar(lvar, tok), node), NULL);
+    }
     return new_node_lvar(lvar, tok);
   }
 
   // そうでなければ数値のはず
-  return new_node_num(expect_number());
-
+  Node *node_num = new_node_num(expect_number());
+  if (consume("[")) { // 添え字演算子
+    Node *node = expr();
+    expect("]");
+    // x[y]を*(x+y)に変換する
+    return new_node(ND_DEREF, new_add(node_num, node), NULL);
+  }
+  return node_num;
 }

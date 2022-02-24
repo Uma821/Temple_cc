@@ -26,6 +26,15 @@ Type *pointer_to(Type *base) {
   return ty;
 }
 
+Type *array_of(Type *base, int array_size) {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TY_ARRAY;
+  // ty->size = 2;
+  ty->array_size = array_size;
+  ty->base = base;
+  return ty;
+}
+
 // ポインタの演算と整数型の演算では処理が変わるため
 void add_type(Node *node) {
   if (!node || node->ty)
@@ -49,10 +58,19 @@ void add_type(Node *node) {
   case ND_DIV:
     node->ty = node->lhs->ty;
     return;
-  case ND_ASSIGN:
-    if (node->lhs->ty->kind != node->rhs->ty->kind)
-      error_at(node->lhs->tok->str, "代入不可");
-    node->ty = node->lhs->ty;
+  case ND_ASSIGN: {
+    TypeKind lvar_type = node->lhs->ty->kind;
+    TypeKind rvar_type = node->rhs->ty->kind;
+    if (lvar_type == rvar_type) {
+      node->ty = node->lhs->ty;
+      return;
+    }
+    if (lvar_type == TY_PTR && rvar_type == TY_ARRAY) {
+      node->ty = node->lhs->ty;
+      return;
+    }
+    error_at(node->lhs->tok->str, "代入不可");
+  }
   case ND_EQ:
   case ND_NE:
   case ND_LT:
@@ -67,11 +85,13 @@ void add_type(Node *node) {
   case ND_ADDR:
     node->ty = pointer_to(node->lhs->ty);
     return;
-  case ND_DEREF:
-    if (node->lhs->ty->kind != TY_PTR)
+  case ND_DEREF: {
+    TypeKind lvar_type = node->lhs->ty->kind;
+    if (lvar_type != TY_PTR && lvar_type != TY_ARRAY)
       error_at(node->lhs->tok->str, "間接演算子の型として無効");
     node->ty = node->lhs->ty->base;
     return;
+  }
   default:
     return;
   }

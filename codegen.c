@@ -189,7 +189,7 @@ static void assign_lvar_offsets(Function *prog) {
   for (Function *fn = prog; fn; fn = fn->next) {
     int offset = 0;
     for (LVar *lvar = fn->locals; lvar; lvar = lvar->next) {
-      offset += 2;
+      offset += lvar->lvar_size;
       lvar->offset = offset;
     }
     fn->stack_size = align_to(offset, 2); // stack_sizeを2の倍数にする(RSPを16の倍数にしなければならないらしい)

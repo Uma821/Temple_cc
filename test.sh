@@ -99,11 +99,14 @@ assert 32 'int main() { return ret32(); } int ret32() { return 32; }'
 assert 7 'int main() { return add2(3,4); } int add2(int x, int y) { return x+y; }'
 assert 1 'int main() { return sub2(4,3); } int sub2(int x, int y) { return x-y; }'
 assert 55 'int main() { return fib(9); } int fib(int x) { if (x<=1) return 1; return fib(x-1) + fib(x-2); }'
+assert 55 'int sum(int n){int ret=0;for(;1<=n;n=n-1)ret=ret+n; return ret;} int main() {return sum(10);}'
 
 assert 2 'int main() { int x; return sizeof(x); }'
 assert 2 'int main() { int x; return sizeof x; }'
 assert 2 'int main() { int *x; return sizeof(x); }'
 assert 2 'int main() { int x=1; return sizeof(x=2); }'
 assert 1 'int main() { int x=1; sizeof(x=2); return x; }'
+
+assert 3 'int main() { int a[2];*a=1;*(a + 1) = 2;int *p;p = a;return *p + *(p + 1); }'
 
 echo OK
