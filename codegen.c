@@ -21,6 +21,7 @@ void gen_lval(Node *node) {
   case ND_LVAR:
     printf("  "mov_rgst("$r0", rbp)"\n");
     printf("  "sub_immed("$r0", "%d")"\n", node->lvar->offset);
+    // if (node->ty->kind == TY_ARRAY)fprintf(stderr, "配列です%d\n", node->lvar->offset);
     printf("  "push_rgst("$r0")"\n");
     return;
   case ND_DEREF:
@@ -40,6 +41,8 @@ void gen(Node *node) {
     return;
   case ND_LVAR:
     gen_lval(node);
+    if (node->ty->kind == TY_ARRAY) 
+      return;
     printf("  "pop("$r0")"\n");
     printf("  "mov_mem_to_rgst("$r0", "$r0")"\n");
     printf("  "push_rgst("$r0")"\n");

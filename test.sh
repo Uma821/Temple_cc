@@ -108,5 +108,8 @@ assert 2 'int main() { int x=1; return sizeof(x=2); }'
 assert 1 'int main() { int x=1; sizeof(x=2); return x; }'
 
 assert 3 'int main() { int a[2];*a=1;*(a + 1) = 2;int *p;p = a;return *p + *(p + 1); }'
+assert 100 'int main() { int b=100;int a[1];int c=50; *a=1;return a[-1]; }'
+assert 4 'int main() {int a[4];int p; return &p-a;}'
+assert 6 'int main() { int a[3]; *a=1; 1[a]=2; a[2]= 3;int sum = 0;int i=0;for (i=0; i<3; i=i+1)sum=sum+i[a];return sum; }'
 
 echo OK

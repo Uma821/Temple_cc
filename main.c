@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
   printf("  "call("main")"\n");
   printf("  jl $allone 111 $ra\n");
 
-  if (use_func_MUL == true) {
+  if (use_func_MUL) {
   // 乗算関数MUL ($t1(掛けられる数), $t2(掛ける数)に与えられた値の乗算結果を$t3に格納する)
   printf("MUL:\n");
   printf("  nor $allone\n");
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
   printf("  "ret()"\n");
   }
 
-  if (use_func_DIV == true) {
+  if (use_func_DIV) {
   // 除算関数DIVの前処理関数、割る数、割られる数が負の数の時に対応させるため
   printf("PRE_DIV:\n");
   printf("  seti T1_MINUS\n");

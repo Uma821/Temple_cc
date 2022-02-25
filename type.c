@@ -61,6 +61,9 @@ void add_type(Node *node) {
   case ND_ASSIGN: {
     TypeKind lvar_type = node->lhs->ty->kind;
     TypeKind rvar_type = node->rhs->ty->kind;
+    
+    if (lvar_type == TY_ARRAY) // 配列への代入
+      error_at(node->lhs->tok->str, "代入不可");
     if (lvar_type == rvar_type) {
       node->ty = node->lhs->ty;
       return;
